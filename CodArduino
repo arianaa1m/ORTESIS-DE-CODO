@@ -1,0 +1,200 @@
+#include<Wire.h>
+#include <Servo.h>
+#include <HX711.h>
+#include "BluetoothSerial.h"
+
+#define LED_BUILTIN 2 //pin with LED to turn on when BT connected
+BluetoothSerial ESP_BT; // Object for Bluetooth
+boolean BT_cnx = false;
+
+void callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param){
+  if(event == ESP_SPP_SRV_OPEN_EVT){
+    digitalWrite(LED_BUILTIN, HIGH);
+    BT_cnx = true;
+  }
+  if(event == ESP_SPP_CLOSE_EVT ){
+    digitalWrite(LED_BUILTIN, LOW);
+    BT_cnx = false;
+    ESP.restart();
+  }
+}
+const int MPU_addr=0x68;
+int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ; 
+int minVal=265;
+int maxVal=402;
+double x;
+double y;
+double z;
+
+Servo myservo;
+float posservo;
+#define MOTOR_MAXPOS 120
+#define MOTOR_MINPOS 0
+int pos = MOTOR_MINPOS;
+const byte kecepatanservo = 1; 
+const byte delayservo = 10; 
+
+int batasberat = 5;
+float hasilLoadCell;
+const int numReadings = 10;
+int sudut ;
+int readings[numReadings];      // the readings from the analog input
+int readIndex = 0;              // the index of the current reading
+int total = 0;                      // the running total
+int average = 0;                // the average
+const int numReadings1 = 10;
+int readings1[numReadings1];      // the readings from the analog input
+int readIndex1 = 0;                      // the index of the current reading
+int total1 = 0;                          // the running total
+int average1 = 0;                       // the average
+
+HX711 LoadCell;
+float calibration_factor = -950; //Nilai awal perkiraan
+float units;
+float ounces;
+//BlynkTimer timer;
+
+#define K_P 0.1
+#define K_I 0.00002
+#define K_D 0.01
+double error, new_error, int_error, diff_error;
+
+void setup() {
+ Serial.begin(9600);
+ pinMode(LED_BUILTIN, OUTPUT);
+ ESP_BT.register_callback(callback);
+  if(!ESP_BT.begin("Mit App-Exo")){ 
+  }
+  
+ Wire.begin();
+ Wire.beginTransmission(MPU_addr);
+ Wire.write(0x6B);
+ Wire.write(0);
+ Wire.endTransmission(true);
+
+ myservo.attach(15);
+ 
+LoadCell.begin(19, 18); 
+ LoadCell.set_scale();
+ LoadCell.tare();
+ long zero_factor = LoadCell.read_average(); 
+ 
+ error = 0.0;
+ int_error = 0.0;
+ diff_error = 0.0;
+ 
+    for (int thisReading = 0; thisReading < numReadings; thisReading++) {
+    readings[thisReading] = 0;
+  }
+      for (int thisReading1 = 0; thisReading1 < numReadings1; thisReading1++) {
+    readings1[thisReading1] = 0;
+  }
+}
+
+void loop() {
+//-----------------------Baca Sudut--------------------------//
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x3B);
+  Wire.endTransmission(false);
+  Wire.requestFrom(MPU_addr,14,true);
+  AcX=Wire.read()<<8|Wire.read();
+  AcY=Wire.read()<<8|Wire.read();
+  AcZ=Wire.read()<<8|Wire.read();
+  int xAng = map(AcX,minVal,maxVal,-90,90);
+  int yAng = map(AcY,minVal,maxVal,-90,90);
+  int zAng = map(AcZ,minVal,maxVal,-90,90);
+ 
+  x= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
+  y= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
+  z= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
+  
+//---------------------------Baca LoadCell--------------------------//
+  LoadCell.set_scale(calibration_factor);
+  units = LoadCell.get_units(), 10;
+  if (units < 0)
+  {
+    units = 0.00;
+  }
+  ounces = units * 0.035274;
+  char temp = Serial.read();
+
+//---------------------------Smoothing--------------------------//  
+  if(temp == '+' || temp == 'a')
+  calibration_factor += 1;
+  else if(temp == '-' || temp == 'z')
+  calibration_factor -= 1;
+  total = total - readings[readIndex];
+  // read from the sensor:
+  readings[readIndex] = units;
+  // add the reading to the total:
+  total = total + readings[readIndex];
+  // advance to the next position in the array:
+  readIndex = readIndex + 1;
+  
+  // if we're at the end of the array...
+  if (readIndex >= numReadings) {
+    // ...wrap around to the beginning:
+    readIndex = 0;
+  }
+  // calculate the average:
+  average = total / numReadings;
+  hasilLoadCell= average-9;
+  if (hasilLoadCell <= 0){
+    hasilLoadCell=0;
+  }
+  
+  total1 = total1 - readings1[readIndex1];
+  // read from the sensor:
+  readings1[readIndex1] = z;
+  // add the reading to the total:
+  total1 = total1 + readings1[readIndex1];
+  // advance to the next position in the array:
+  readIndex1 = readIndex1 + 1;
+  
+    // if we're at the end of the array...
+   if (readIndex1 >= numReadings1) {
+    // ...wrap around to the beginning:
+    readIndex1 = 0;
+    }
+  // calculate the average:
+  average1 = total1 / numReadings1;
+  if (sudut <= 0)
+     {sudut=0;}
+
+//---------------------------Kontrol Servo--------------------------//  
+  posservo = map(average, 5, 500, 0 , 150 );
+  
+  new_error= posservo;
+  int_error += error;
+  diff_error = new_error - error;
+  error = new_error;
+  
+  pos += K_P*error + K_I*int_error + K_D*diff_error;
+  
+  if(pos < MOTOR_MINPOS) pos = MOTOR_MINPOS;
+  else if(pos > MOTOR_MAXPOS) pos = MOTOR_MAXPOS;
+
+   myservo.write(pos);
+
+  //Serial.print("|");
+  Serial.print(ounces);
+  Serial.print("|");
+  Serial.print(sudut);
+  Serial.print("|");
+  Serial.print(posservo);
+  Serial.print("|");
+  Serial.print(posisi);
+  Serial.println("|");
+  //Serial.println(eror);
+    
+  //Serial.print(" || ");
+  //Serial.println();
+   if(BT_cnx);{
+      ESP_BT.print(sudut);
+      ESP_BT.print("|");
+      ESP_BT.println(ounces);
+      ESP_BT.print("|");
+      delay(0);
+}
+  delay(100);
+ }
