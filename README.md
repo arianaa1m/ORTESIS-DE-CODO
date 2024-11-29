@@ -18,3 +18,13 @@ Este tipo de medición y procesamiento es crucial en aplicaciones donde se neces
 
 4. **Mediciones Continuas y en Tiempo Real**:
    Con el uso de la función `millis()`, el código garantiza que las lecturas de los sensores se tomen de manera continua y en intervalos regulares (300ms), lo que es fundamental para aplicaciones donde se necesita información en tiempo real sobre el movimiento o la orientación del dispositivo.
+   # My Project
+
+Here is a simple flowchart illustrating the project structure:
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
