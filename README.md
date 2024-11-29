@@ -5,7 +5,7 @@
 
 El propósito de este código en el proyecto es **medir y procesar datos de orientación y movimiento** utilizando dos sensores **LSM6DS3**, que son **acelerómetros** y **giroscopios** de seis ejes. El código tiene como objetivo principal obtener la inclinación y la rotación de un objeto en tres dimensiones (3D), proporcionando información precisa sobre la orientación del dispositivo o sistema en el que se encuentren instalados los sensores.
 
-Este tipo de medición y procesamiento es crucial en aplicaciones donde se necesita controlar o monitorear la posición y el movimiento de un objeto. Aquí se describe más específicamente cómo este código contribuye al proyecto:
+Este tipo de medición y procesamiento es crucial en aplicaciones donde se necesita controlar o monitorear la posición y el movimiento de un objeto. 
 
 1. **Medición de la Orientación 3D**: 
    El código permite calcular los ángulos de inclinación (en los ejes X, Y y Z) de un objeto con dos sensores LSM6DS3. Al combinar la información del **acelerómetro** (que mide la gravedad y la inclinación) y del **giroscopio** (que mide la velocidad angular o la rotación), el código obtiene una medición más precisa y confiable de la orientación del objeto.
