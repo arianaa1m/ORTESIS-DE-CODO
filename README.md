@@ -24,7 +24,7 @@ Este tipo de medición y procesamiento es crucial en aplicaciones donde se neces
 ```mermaid
 graph TD;
     RESET-->ESTADO_1_INIT;
-    ESTADO_1_INIT-->ESTADO_2_IDDLE;
-    ESTADO_2_IDDLE-->ESTADO_3_LECTURA_EMG;
+    ESTADO_1_INIT-->ESTADO_2_IDLE;
+    ESTADO_2_IDLE-->ESTADO_3_LECTURA_EMG;
     ESTADO_3_LECTURA_EMG-->ESTADO_4_PROCESAMIENTO_SEÑAL;
     ESTADO_4_PROCESAMIENTO_SEÑAL-->ESTADO_5_RESPUESTA_ORTESIS;
