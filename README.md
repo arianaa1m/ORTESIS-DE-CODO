@@ -21,15 +21,14 @@ Este tipo de medición y procesamiento es crucial en aplicaciones donde se neces
 4. **Mediciones Continuas y en Tiempo Real**:
    Con el uso de la función `millis()`, el código garantiza que las lecturas de los sensores se tomen de manera continua y en intervalos regulares (300ms), lo que es fundamental para aplicaciones donde se necesita información en tiempo real sobre el movimiento o la orientación del dispositivo.
 
-   # Diagrama: Funcionamiento del proyecto
+# DIAGRAMA 
+graph TD
+    RESET[RESET] --> ESTADO_1_INIT[ESTADO_1_INIT]
+    ESTADO_1_INIT --> ESTADO_2_IDLE[ESTADO_2_IDLE]
+    ESTADO_2_IDLE --> ESTADO_3_LECTURA_EMG[ESTADO_3_LECTURA_EMG]
+    ESTADO_3_LECTURA_EMG --> ESTADO_4_PROCESAMIENTO_SEÑAL[ESTADO_4_PROCESAMIENTO_SEÑAL]
+    ESTADO_4_PROCESAMIENTO_SEÑAL --> ESTADO_5_RESPUESTA_ORTESIS[ESTADO_5_RESPUESTA_ORTESIS]
 
-```mermaid
-graph TD;
-    RESET-->ESTADO_1_INIT;
-    ESTADO_1_INIT-->ESTADO_2_IDLE;
-    ESTADO_2_IDLE-->ESTADO_3_LECTURA_EMG;
-    ESTADO_3_LECTURA_EMG-->ESTADO_4_PROCESAMIENTO_SEÑAL;
-    ESTADO_4_PROCESAMIENTO_SEÑAL-->ESTADO_5_RESPUESTA_ORTESIS;
 
 # ORTESIS-DE-CODO
 Código para funcionamiento de órtesis de codo para tratar rigidez de codo.
