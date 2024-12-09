@@ -1,0 +1,119 @@
+#include "SparkFunLSM6DS3.h"
+#include "Wire.h"
+#include "SPI.h"
+
+// pin de los sensores
+LSM6DS3 SensorOne(I2C_MODE, 0x6A); // Dirección 0x6A
+LSM6DS3 SensorTwo(I2C_MODE, 0x6B); // Dirección 0x6B
+
+const float radToDeg = 360.0 / (2.0 * 3.1416);
+const float alfa = 0.95; // Filtro complementario
+const unsigned long timePeriod = 50;  // Tiempo entre mediciones (ms)
+
+// Raw values de los sensores
+float ax1 = 0, ay1 = 0, az1 = 0, gx1 = 0, gy1 = 0, gz1 = 0;
+float ax2 = 0, ay2 = 0, az2 = 0, gx2 = 0, gy2 = 0, gz2 = 0;
+
+// Para calcular ángulos
+float accel_ang_x1 = 0, accel_ang_y1 = 0, accel_ang_z1 = 0;
+float accel_ang_x2 = 0, accel_ang_y2 = 0, accel_ang_z2 = 0;
+float ang_x1 = 0, ang_y1 = 0, ang_z1 = 0;
+float ang_x2 = 0, ang_y2 = 0, ang_z2 = 0;
+
+float dt = timePeriod / 1000.0;  // Tiempo entre mediciones en segundos
+
+SemaphoreHandle_t xSemaphore; // Semáforo para sincronizar las tareas
+
+// Función para leer los sensores
+bool readSensorData(float& ax, float& ay, float& az, float& gx, float& gy, float& gz, LSM6DS3& sensor) {
+  // Leer valores de acelerómetro y giroscopio
+  ax = sensor.readFloatAccelX();
+  ay = sensor.readFloatAccelY();
+  az = sensor.readFloatAccelZ();
+  gx = sensor.readFloatGyroX();
+  gy = sensor.readFloatGyroY();
+  gz = sensor.readFloatGyroZ();
+
+  // Verificar si las lecturas son válidas (sin errores extremos)
+  return !(isnan(ax) || isnan(ay) || isnan(az) || isnan(gx) || isnan(gy) || isnan(gz));
+}
+
+// Cálculos de ángulos del acelerómetro
+void calculateAccel(float ax, float ay, float az, float& accel_ang_x, float& accel_ang_y, float& accel_ang_z) {
+  accel_ang_x = atan2(ay, sqrt(pow(ax, 2) + pow(az, 2))) * radToDeg;
+  accel_ang_y = atan2(-ax, sqrt(pow(ay, 2) + pow(az, 2))) * radToDeg;
+  accel_ang_z = atan2(sqrt(pow(ax, 2) + pow(ay, 2)), az) * radToDeg;
+}
+
+// Filtro Complementario
+void complementaryFilter(float gx, float gy, float gz, float accel_ang_x, float accel_ang_y, float accel_ang_z, float& ang_x, float& ang_y, float& ang_z) {
+  ang_x = alfa * (ang_x + gx * dt) + (1.0 - alfa) * accel_ang_x;
+  ang_y = alfa * (ang_y + gy * dt) + (1.0 - alfa) * accel_ang_y;
+  ang_z = alfa * (ang_z + gz * dt) + (1.0 - alfa) * accel_ang_z;
+}
+
+// Task: Leer datos de sensores
+void readSensorsTask(void* pvParameters) {
+  while (true) {
+    // Leer sensores
+    if (readSensorData(ax1, ay1, az1, gx1, gy1, gz1, SensorOne)) {
+      calculateAccel(ax1, ay1, az1, accel_ang_x1, accel_ang_y1, accel_ang_z1);
+      complementaryFilter(gx1, gy1, gz1, accel_ang_x1, accel_ang_y1, accel_ang_z1, ang_x1, ang_y1, ang_z1);
+    } else {
+      Serial.println("Error leyendo Sensor 1.");
+    }
+
+    if (readSensorData(ax2, ay2, az2, gx2, gy2, gz2, SensorTwo)) {
+      calculateAccel(ax2, ay2, az2, accel_ang_x2, accel_ang_y2, accel_ang_z2);
+      complementaryFilter(gx2, gy2, gz2, accel_ang_x2, accel_ang_y2, accel_ang_z2, ang_x2, ang_y2, ang_z2);
+    } else {
+      Serial.println("Error leyendo Sensor 2.");
+    }
+
+    // Dar el semáforo para enviar datos
+    xSemaphoreGive(xSemaphore);
+    vTaskDelay(pdMS_TO_TICKS(timePeriod));
+  }
+}
+
+// Task: Enviar datos por serial
+void sendDataTask(void* pvParameters) {
+  while (true) {
+    // Esperar el semáforo
+    if (xSemaphoreTake(xSemaphore, portMAX_DELAY) == pdTRUE) {
+      Serial.print("ANG_X_DIFF: ");
+      Serial.print(ang_x2 - ang_x1, 2);
+      Serial.print(", ANG_Y_DIFF: ");
+      Serial.println(ang_y2 - ang_y1, 2);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  // Iniciar sensores
+  if (SensorOne.begin()) {
+    Serial.println("Sensor en 0x6A iniciado.");
+  } else {
+    Serial.println("Problema iniciando el sensor en 0x6A.");
+  }
+
+  if (SensorTwo.begin()) {
+    Serial.println("Sensor en 0x6B iniciado.");
+  } else {
+    Serial.println("Problema iniciando el sensor en 0x6B.");
+  }
+
+  // Crear el semáforo
+  xSemaphore = xSemaphoreCreateBinary();
+
+  // Crear tareas
+  xTaskCreate(readSensorsTask, "Read Sensors Task", 2048, NULL, 1, NULL);
+  xTaskCreate(sendDataTask, "Send Data Task", 2048, NULL, 1, NULL);
+}
+
+void loop() {
+  
+}

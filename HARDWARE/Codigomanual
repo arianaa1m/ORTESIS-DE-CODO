@@ -1,0 +1,26 @@
+#include <Servo.h>
+
+Servo myServo;
+
+const int servoPin = 9;
+
+void setup() {
+  myServo.attach(servoPin);
+  Serial.begin(9600); // Iniciar la comunicación serie
+  myServo.write(135); // Mover el servomotor a la posición inicial (135 grados)
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char command = Serial.read(); // Leemos el comando recibido
+
+    if (command == 'A') {
+      myServo.write(45); // Mover el servomotor a 45 grados 
+      delay(1000); 
+    }
+    else if (command == 'B') {
+      myServo.write(135); // Mover el servomotor de vuelta a 135 grados (sentido horario)
+      delay(1000); 
+    }
+  }
+}
