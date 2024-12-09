@@ -1,0 +1,184 @@
+import tkinter as tk
+from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.animation as animation
+import serial
+import random 
+import datetime
+
+# Configuración inicial
+PATIENT_NAME = "FUNCIONAL"
+GRAPH_INDEX =  0 # 0 para flexoextensión, 1 para pronosupinación
+NUMBER_POINTS = 3
+sup_limit = 30
+inf_limit = -70
+PATH = "c:\\disco local c\\CATÓLICA\\II-2024"  # Cambiar el PATH si es necesario
+
+# Configuración del gráfico
+x_len = 500  # Muestras
+y1_range = [-100, 50]  # Rango para flexoextensión
+y2_range = [-100, 100]  # Rango para pronosupinación
+xs = list(range(0, x_len))
+ys1 = [0] * x_len
+ys2 = [0] * x_len
+position = [(498, random.randint(inf_limit, sup_limit)) for _ in range(NUMBER_POINTS)]
+current_point_index = 0  # Índice del punto activo
+points_counter = 0  # Contador de puntos alcanzados
+file_written = False  # Bandera para el informe
+
+# Comunicación serial
+try:
+    ser = serial.Serial('COM7', 115200, timeout=1)
+except serial.SerialException as e:
+    print(f"Error al abrir el puerto serial: {e}")
+    ser = None
+
+
+
+
+def animate(i, ys1, ys2):
+    global current_point_index, points_counter, file_written
+
+    # Leer datos del puerto serial (simulado si no hay puerto serial disponible)
+    if ser and ser.is_open:
+        try:
+            data = ser.readline().decode('utf-8').strip()
+            if data:
+                values = data.split(',')
+                if len(values) == 2:
+                    val1, val2 = map(float, values)
+                    ys1.append(val1)
+                    ys2.append(val2)
+                    ys1 = ys1[-x_len:]  # Asegúrate de que no exceda el tamaño x_len
+                    ys2 = ys2[-x_len:]
+        except serial.SerialException as e:
+            print(f"Error leyendo el puerto serial: {e}")
+    else:
+        ys1.append(0)
+        ys2.append(0)
+        ys1 = ys1[-x_len:]
+        ys2 = ys2[-x_len:]
+
+    # Actualizar la señal en el gráfico
+    if GRAPH_INDEX == 0:
+        line.set_ydata(ys1)
+        current_value = ys1[-1]
+    elif GRAPH_INDEX == 1:
+        line.set_ydata(ys2)
+        current_value = ys2[-1]
+
+    # Verificar si se alcanzó el punto actual
+    if current_point_index < len(position):
+        x, y = position[current_point_index]
+        if abs(current_value - y) <= 5:  # Tolerancia de 5 grados
+            points_counter += 1
+            update_counter_label()
+            current_point_index += 1
+
+            if current_point_index < NUMBER_POINTS:
+                next_x, next_y = position[current_point_index]
+                point.set_data([next_x], [next_y])  # Actualizar al siguiente punto
+            else:
+                if not file_written:
+                    end_time = datetime.datetime.now()
+                    elapsed_time = (end_time - init_time).total_seconds()
+                    with open(PATH + f"Informe_{datetime.datetime.now().strftime('%Y_%m_%d')}.txt", 'w') as f:
+                        f.write(f"Paciente: {PATIENT_NAME}\n")
+                        f.write(f"Actividad: {'Flexoextensión' if GRAPH_INDEX == 0 else 'Pronosupinación'}\n")
+                        f.write(f"Tiempo total: {elapsed_time:.2f} segundos\n")
+                        f.write(f"Puntos alcanzados: {points_counter}\n")
+                    file_written = True
+                    ani.event_source.stop()
+        else:
+            # Mover el siguiente punto
+            next_x, next_y = position[current_point_index]
+            point.set_data([next_x], [next_y])  # Usar listas para x e y
+
+
+        # Si se alcanzan todos los puntos
+        if current_point_index == NUMBER_POINTS:
+            if not file_written:
+                end_time = datetime.datetime.now()
+                elapsed_time = (end_time - init_time).total_seconds()
+                with open(PATH + f"Informe_{datetime.datetime.now().strftime('%Y_%m_%d')}.txt", 'w') as f:
+                    f.write(f"Paciente: {PATIENT_NAME}\n")
+                    f.write(f"Actividad: {'Flexoextensión' if GRAPH_INDEX == 0 else 'Pronosupinación'}\n")
+                    f.write(f"Tiempo total: {elapsed_time:.2f} segundos\n")
+                    f.write(f"Puntos alcanzados: {points_counter}\n")
+                file_written = True
+                ani.event_source.stop()  # Detener la animación
+
+# Función para actualizar el contador en la interfaz
+def update_counter_label():
+    counter_label.config(text=f"Puntos alcanzados: {points_counter}/{NUMBER_POINTS}")
+
+# Función para iniciar el gráfico
+def start_graph():
+    global fig, ax, line, point, elapsed_time_text, ani, init_time
+
+    # Configuración del gráfico
+    fig, ax = plt.subplots()
+    if GRAPH_INDEX == 0:
+        ax.set_ylim(y1_range)
+        ax.set_title('Flexoextension Rehab')
+    elif GRAPH_INDEX == 1:
+        ax.set_ylim(y2_range)
+        ax.set_title('Pronosupination Rehab')
+
+    ax.set_xlabel('Samples')
+    ax.set_ylabel('Degrees')
+    ax.grid(True)
+    ax.axhline(0, color='red', linestyle='-', linewidth=2)
+
+    # Inicializar línea
+    global line
+    line, = ax.plot(xs, ys1 if GRAPH_INDEX == 0 else ys2)
+
+    # Crear un único punto activo en el gráfico
+    global point
+    point, = ax.plot(position[0][0], position[0][1], 'o', color='green', alpha=1)
+
+    # Iniciar el tiempo
+    init_time = datetime.datetime.now()
+
+    # Insertar el gráfico en la ventana Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=frame_graph)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+    ani = animation.FuncAnimation(fig, animate, fargs=(ys1, ys2), interval=100)
+    canvas.draw()
+
+# Crear la ventana principal
+root = tk.Tk()
+root.title("Rehabilitación en Tiempo Real")
+root.geometry("1200x800")
+
+# Crear marco para el gráfico
+frame_graph = tk.Frame(root)
+frame_graph.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# Crear controles en la interfaz
+frame_controls = tk.Frame(root, bg="lightgrey", width=300)
+frame_controls.pack(side=tk.RIGHT, fill=tk.Y)
+
+label_name = tk.Label(frame_controls, text="Paciente:", bg="lightgrey", font=("Arial", 14))
+label_name.pack(pady=10)
+
+entry_name = tk.Entry(frame_controls, font=("Arial", 12))
+entry_name.insert(0, PATIENT_NAME)
+entry_name.pack(pady=10)
+
+counter_label = tk.Label(frame_controls, text=f"Puntos alcanzados: {points_counter}/{NUMBER_POINTS}",
+                         bg="lightgrey", font=("Arial", 14))
+counter_label.pack(pady=10)
+
+btn_start = tk.Button(frame_controls, text="Iniciar Gráfico", font=("Arial", 12), command=start_graph)
+btn_start.pack(pady=20)
+
+btn_exit = tk.Button(frame_controls, text="Salir", font=("Arial", 12), command=root.destroy)
+btn_exit.pack(pady=20)
+
+# Iniciar el bucle principal
+root.mainloop()
