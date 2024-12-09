@@ -3,16 +3,6 @@
 Órtesis de flexo-extensión para el codo
 ## Grupo conformado por: Ariana Muñoz, Tatiana Kitay-Gora y Fabiana Antonella Pelaez
 
-# DIAGRAMA
-```mermaid
-graph TD
-    RESET[RESET] --> ESTADO_1_INIT[ESTADO_1_INIT]
-    ESTADO_1_INIT --> ESTADO_2_IDLE[ESTADO_2_IDLE]
-    ESTADO_2_IDLE --> ESTADO_3_LECTURA_EMG[ESTADO_3_LECTURA_EMG]
-    ESTADO_3_LECTURA_EMG --> ESTADO_4_PROCESAMIENTO_SEÑAL[ESTADO_4_PROCESAMIENTO_SEÑAL]
-    ESTADO_4_PROCESAMIENTO_SEÑAL --> ESTADO_5_RESPUESTA_ORTESIS[ESTADO_5_RESPUESTA_ORTESIS]
-
-
 # ORTESIS-DE-CODO
 Código para funcionamiento de órtesis de codo para tratar rigidez de codo.
 # DESCRIPCIÓN
@@ -39,3 +29,11 @@ Conecte los componentes según el esquema físico (adjunto al proyecto).
 Suba el código al microcontrolador y monitoree la salida en la consola serial para pruebas.
 ## Grupo conformado por: Ariana Muñoz, Tatiana Kitay-Gora y Fabiana Pelaez
 
+# DIAGRAMA
+```mermaid
+graph TD
+    RESET[RESET] --> ESTADO_1_INIT[ESTADO_1_INIT]
+    ESTADO_1_INIT --> ESTADO_2_IDLE[ESTADO_2_IDLE]
+    ESTADO_2_IDLE --> ESTADO_3_LECTURA_EMG[ESTADO_3_LECTURA_EMG]
+    ESTADO_3_LECTURA_EMG --> ESTADO_4_PROCESAMIENTO_SEÑAL[ESTADO_4_PROCESAMIENTO_SEÑAL]
+    ESTADO_4_PROCESAMIENTO_SEÑAL --> ESTADO_5_RESPUESTA_ORTESIS[ESTADO_5_RESPUESTA_ORTESIS]
