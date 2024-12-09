@@ -2,6 +2,7 @@
 Órtesis de flexo-extensión para el codo
 ## Grupo conformado por: Ariana Muñoz, Tatiana Kitay-Gora y Fabiana Antonella Pelaez
 ## Código en Arduino IDE (propósito del código)
+hellooooowwww
 
 El propósito de este código en el proyecto es **medir y procesar datos de orientación y movimiento** utilizando dos sensores **LSM6DS3**, que son **acelerómetros** y **giroscopios** de seis ejes. El código tiene como objetivo principal obtener la inclinación y la rotación de un objeto en tres dimensiones (3D), proporcionando información precisa sobre la orientación del dispositivo o sistema en el que se encuentren instalados los sensores.
 
