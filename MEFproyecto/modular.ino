@@ -17,6 +17,7 @@ void loop() {
     maquina = LECTURAEMG;
     break;
   case LECTURAEMG:
+    lectura();
     //código funciones
     maquina= PROCESAMIENTOEMG;
     break;

@@ -1,0 +1,26 @@
+#include <Servo.h>
+
+Servo myServo;
+
+const int servoPin = 9;
+const int emgPin = A0;
+const int threshold = 500;
+
+void setup() {
+  myServo.attach(servoPin);
+  myServo.write(45); // Movemos el servomotor a la posición inicial (45 grados)
+  Serial.begin(9600); // Iniciar la comunicación serie
+}
+
+void loop() {
+  int emgValue = analogRead(emgPin);
+  Serial.println(emgValue);
+
+  if (emgValue > threshold) { // Verificamos si la señal EMG supera el umbral
+    myServo.write(135); // Movemos el servomotor a 135 grados 
+  } else {
+    myServo.write(45);
+  }
+
+  delay(100);
+}

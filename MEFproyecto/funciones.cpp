@@ -1,1 +1,3 @@
 void esperaboton
+
+void lectura();
